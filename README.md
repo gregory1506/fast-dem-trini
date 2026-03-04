@@ -2,6 +2,8 @@
 
 **Live demo:** https://gregory1506.github.io/fast-dem-trini/
 
+![Fast DEM Trinidad — 3D terrain + wind trips](docs/assets/readme-hero.png)
+
 Immersive 3D terrain of Trinidad & Tobago with wind‑driven trip trails, quantile color scaling, and clean layer controls. Built for fast visual exploration and public sharing.
 
 ---
