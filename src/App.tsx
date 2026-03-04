@@ -6,7 +6,7 @@ import { MapboxOverlay } from '@deck.gl/mapbox';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import { TripsLayer } from '@deck.gl/geo-layers';
 import { WindDataService } from './services/WindDataService';
-import type { WindGrid } from './services/WindDataTypes';
+import type { WindGrid } from './services/WindDataService';
 import { buildWindTrips, type WindTrip } from './utils/windTrips';
 
 const TRINIDAD_TOBAGO_COORDS: [number, number] = [-61.3, 10.8];

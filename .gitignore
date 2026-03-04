@@ -16,6 +16,7 @@ dist-ssr
 .playwright-cli/
 output/
 CLAUDE.md
+docs/CLAUDE.md
 
 # Editor directories and files
 .vscode/*
