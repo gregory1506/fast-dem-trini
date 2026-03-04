@@ -26,7 +26,11 @@ function App() {
   const maxTripTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
   const currentTimeRef = useRef<number>(0);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchDeltaRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
   const [legendBands, setLegendBands] = useState<number[]>([0, 4, 8, 12, 16, 20]);
   const [layers, setLayers] = useState({
     roads: false,
@@ -111,7 +115,72 @@ function App() {
     overlay.setProps({ layers: tripsLayer ? [tripsLayer] : [] });
   };
 
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 640px)');
+    const update = () => {
+      setIsMobile(media.matches);
+      setPanelOpen(!media.matches);
+    };
 
+    update();
+    if (media.addEventListener) {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
+
+  const handleEdgeTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    touchDeltaRef.current = { x: 0, y: 0 };
+  };
+
+  const handleEdgeTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touchStartRef.current || !touch) return;
+    touchDeltaRef.current = {
+      x: touch.clientX - touchStartRef.current.x,
+      y: touch.clientY - touchStartRef.current.y,
+    };
+  };
+
+  const handleEdgeTouchEnd = () => {
+    const { x, y } = touchDeltaRef.current;
+    if (x > 50 && Math.abs(y) < 40) {
+      setPanelOpen(true);
+    }
+    touchStartRef.current = null;
+    touchDeltaRef.current = { x: 0, y: 0 };
+  };
+
+  const handlePanelTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    touchDeltaRef.current = { x: 0, y: 0 };
+  };
+
+  const handlePanelTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touchStartRef.current || !touch) return;
+    touchDeltaRef.current = {
+      x: touch.clientX - touchStartRef.current.x,
+      y: touch.clientY - touchStartRef.current.y,
+    };
+  };
+
+  const handlePanelTouchEnd = () => {
+    const { x, y } = touchDeltaRef.current;
+    if (x < -50 && Math.abs(y) < 40) {
+      setPanelOpen(false);
+    }
+    touchStartRef.current = null;
+    touchDeltaRef.current = { x: 0, y: 0 };
+  };
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -370,8 +439,13 @@ function App() {
     <>
       <div ref={mapContainer} className="map-container" />
 
-      <div className="ui-overlay">
-        <div className="glass-panel">
+      <div className={`ui-overlay ${panelOpen ? 'open' : 'closed'}`}>
+        <div
+          className="glass-panel"
+          onTouchStart={isMobile ? handlePanelTouchStart : undefined}
+          onTouchMove={isMobile ? handlePanelTouchMove : undefined}
+          onTouchEnd={isMobile ? handlePanelTouchEnd : undefined}
+        >
           <div className="panel-header">
             <h1><Mountain size={26} color="#38bdf8" /> EarthDEM Viewer</h1>
             <span className="panel-badge">Live Terrain</span>
@@ -423,6 +497,28 @@ function App() {
           </div>
         </div>
       </div>
+
+      {isMobile && (
+        <>
+          <div
+            className={`panel-scrim ${panelOpen ? 'show' : ''}`}
+            onClick={() => setPanelOpen(false)}
+          />
+          {!panelOpen && (
+            <button className="panel-handle" onClick={() => setPanelOpen(true)}>
+              Layers
+            </button>
+          )}
+          {!panelOpen && (
+            <div
+              className="swipe-edge"
+              onTouchStart={handleEdgeTouchStart}
+              onTouchMove={handleEdgeTouchMove}
+              onTouchEnd={handleEdgeTouchEnd}
+            />
+          )}
+        </>
+      )}
 
       <div className="north-arrow" aria-label="North">
         <div className="north-arrow-circle">

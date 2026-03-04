@@ -78,6 +78,49 @@ body::before {
   pointer-events: auto;
 }
 
+.panel-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 8;
+}
+
+.panel-scrim.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel-handle {
+  position: fixed;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 11;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(7, 12, 22, 0.9);
+  color: var(--text-main);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.45);
+  cursor: pointer;
+}
+
+.swipe-edge {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  z-index: 9;
+}
+
 h1 {
   font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 1.35rem;
@@ -329,9 +372,24 @@ p.subtitle {
 
 @media (max-width: 640px) {
   .ui-overlay {
-    width: 92vw;
-    left: 4vw;
-    top: 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 86vw;
+    max-width: 380px;
+    height: 100vh;
+    padding: 16px;
+    transform: translateX(-102%);
+    transition: transform 0.28s ease;
+    pointer-events: auto;
+  }
+
+  .ui-overlay.open {
+    transform: translateX(0);
+  }
+
+  .ui-overlay.closed {
+    transform: translateX(-102%);
   }
 
   .map-legend {
