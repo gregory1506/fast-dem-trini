@@ -39,21 +39,14 @@ function App() {
     trips: false
   });
 
-  const buildLegendBands = (grid: WindGrid): number[] => {
-    const speeds: number[] = [];
-    for (const row of grid.points) {
-      for (const point of row) {
-        speeds.push(point.speed || 0);
-      }
-    }
-
-    if (speeds.length === 0) {
+  const buildQuantileBands = (values: number[]): number[] => {
+    if (values.length === 0) {
       return [0, 0, 0, 0, 0, 0];
     }
 
-    speeds.sort((a, b) => a - b);
-    const n = speeds.length;
-    const quantile = (p: number) => speeds[Math.floor(p * (n - 1))];
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = sorted.length;
+    const quantile = (p: number) => sorted[Math.floor(p * (n - 1))];
 
     const bands = [0, 0.2, 0.4, 0.6, 0.8, 1].map(quantile);
     const min = bands[0];
@@ -68,6 +61,22 @@ function App() {
       rounded[i] = Math.max(rounded[i], rounded[i - 1]);
     }
     return rounded;
+  };
+
+  const buildLegendBands = (grid: WindGrid): number[] => {
+    const speeds: number[] = [];
+    for (const row of grid.points) {
+      for (const point of row) {
+        speeds.push(point.speed || 0);
+      }
+    }
+
+    return buildQuantileBands(speeds);
+  };
+
+  const buildTripLegendBands = (trips: WindTrip[]): number[] => {
+    const speeds = trips.map((trip) => trip.speed).filter((speed) => Number.isFinite(speed));
+    return buildQuantileBands(speeds);
   };
 
   const formatSpeed = (value: number) => (Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1));
@@ -342,8 +351,6 @@ function App() {
       // Fetch initial wind data
       try {
         const grid = await windService.fetchWindData();
-        setLegendBands(buildLegendBands(grid));
-
         const { trips, maxTime } = buildWindTrips(
           windService,
           TRINIDAD_TOBAGO_BOUNDS,
@@ -354,6 +361,8 @@ function App() {
         );
         tripsRef.current = trips;
         maxTripTimeRef.current = maxTime;
+        const tripBands = buildTripLegendBands(trips);
+        setLegendBands(tripBands.some((value) => value > 0) ? tripBands : buildLegendBands(grid));
         console.log('Wind data loaded successfully');
       } catch (error) {
         console.error('Failed to load wind data:', error);
