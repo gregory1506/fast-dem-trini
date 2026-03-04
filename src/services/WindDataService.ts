@@ -416,41 +416,6 @@ export class WindDataService {
   /**
    * Creates a zero-wind fallback grid (used when API fails and no cache)
    */
-  private createZeroWindGrid(): WindGrid {
-    const { gridRows = 8, gridCols = 8, bounds } = this.config;
-    const points: WindGridPoint[][] = [];
-
-    for (let row = 0; row < gridRows; row++) {
-      const rowPoints: WindGridPoint[] = [];
-      const lat = bounds.north - (row / (gridRows - 1)) * (bounds.north - bounds.south);
-
-      for (let col = 0; col < gridCols; col++) {
-        const lng = bounds.west + (col / (gridCols - 1)) * (bounds.east - bounds.west);
-
-        rowPoints.push({
-          lng,
-          lat,
-          u: 0,
-          v: 0,
-          speed: 0,
-          direction: 0,
-        });
-      }
-      points.push(rowPoints);
-    }
-
-    return {
-      points,
-      metadata: {
-        timestamp: Date.now(),
-        bounds,
-        rows: gridRows,
-        cols: gridCols,
-        source: 'Fallback (Zero Wind)',
-      },
-    };
-  }
-
   /**
    * Checks if cached data is still fresh
    */
