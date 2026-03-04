@@ -213,15 +213,15 @@ function App() {
           // Vector Features Sources
           'roadsSource': {
             type: 'geojson',
-            data: '/roads.geojson'
+            data: `${import.meta.env.BASE_URL}roads.geojson`
           },
           'riversSource': {
             type: 'geojson',
-            data: '/rivers.geojson'
+            data: `${import.meta.env.BASE_URL}rivers.geojson`
           },
           'buildingsSource': {
             type: 'geojson',
-            data: '/buildings.geojson'
+            data: `${import.meta.env.BASE_URL}buildings.geojson`
           }
         },
         layers: [
