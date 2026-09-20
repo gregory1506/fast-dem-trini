@@ -70,3 +70,16 @@
 - Confirmed main is the deployment branch and GitHub Pages runs the full check suite before publishing.
 
 **Status:** deployment verified. GitHub Pages run `35489548773` and quality-check run `35489548759` both completed successfully for commit `35e216dbaf4f8ea0e05f48cba58800f5357d2be7`. The public site returned its app HTML, and its referenced JavaScript bundle includes the earthquake controls and USGS endpoint. This follow-up checked publication; browser interaction checks are recorded above.
+
+## 2026-09-20 — README refresh
+
+- Refreshed the README with a centred introduction, CI/deployment/license/Node badges, live demo links, feature and stack tables, and a clearer setup and contribution flow.
+- Added relevant geographic, GIS, wind, earthquake and technology keywords and hashtags; preserved source credits, demo behavior and visualization limitations.
+- Validated local Markdown links, code fences and whitespace. Documentation-only change; no application tests rerun.
+- Status: complete locally; not committed or pushed.
+
+## 2026-09-20 — README publication
+
+- User authorized committing and pushing the README refresh and its work record.
+- Confirmed the diff contains only README and work-log changes; whitespace validation passed.
+- Publishing to `main` through the existing GitHub workflows.
