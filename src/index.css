@@ -50,6 +50,8 @@ body::before {
 
 /* Glassmorphism Panel */
 .glass-panel {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   background: linear-gradient(135deg, var(--bg-glass-strong), var(--bg-glass));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -369,6 +371,26 @@ p.subtitle {
 .swatch-3 { background: #22d3ee; }
 .swatch-4 { background: #22c55e; }
 .swatch-5 { background: #f59e0b; }
+
+.earthquake-panel {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.earthquake-panel p { margin-bottom: 8px; }
+.earthquake-panel a { color: var(--primary); }
+.earthquake-depths { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.earthquake-depths i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.earthquake-panel select {
+  width: 100%; min-height: 44px; margin: 4px 0 12px; padding: 8px;
+  background: #0f172a; color: var(--text-main); border: 1px solid var(--border-glass); border-radius: 8px;
+}
+.earthquake-details { border-left: 2px solid #fbbf24; padding-left: 10px; margin-bottom: 12px; }
+.layer-toggle:focus-visible, .earthquake-panel select:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 
 @media (max-width: 640px) {
   .ui-overlay {

@@ -32,6 +32,13 @@ For repeatable wind data without contacting Open-Meteo, open
 internet access.** Roads, rivers, and buildings are checked into `public/`.
 Wind trails start disabled; enable them in the layer panel.
 
+Enable **Recent Earthquakes** for the [USGS past-30-days feed](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php),
+filtered to the map region. Circle size indicates magnitude and colour indicates
+depth. Click a marker or use the event selector for details in Trinidad time.
+The feed refreshes every five minutes while enabled, including in wind demo mode.
+An empty region is shown explicitly; failed refreshes keep the previous data with
+a stale-data message. Coverage reflects events reported by USGS.
+
 ```sh
 npm run check    # zero-warning lint + network-free tests + TypeScript/build
 npm run preview  # serve the production build after npm run check
@@ -42,6 +49,7 @@ npm run preview  # serve the production build after npm run check
 - MapLibre terrain with Esri imagery and Terrarium elevation tiles; 1.5× vertical exaggeration.
 - Roads, rivers, and building footprints from local GeoJSON. Building heights are fixed at 15 m.
 - deck.gl wind trails, hourly Open-Meteo GFS input, and quantile color bands.
+- Recent USGS earthquakes with magnitude/depth markers, event details and automatic refresh.
 - Desktop tilt/rotate using right-click and drag; mobile layer drawer and touch navigation.
 - Wind-source/timestamp label, explicit synthetic fallback, and a wind demo mode.
 

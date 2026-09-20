@@ -20,3 +20,4 @@
 - Repository critique, contribution guide, task briefs and current architecture/data inventory.
 - Clean lint, network-free regression suite, PR checks and checked deployment workflow.
 - Synthetic wind labeling/demo mode, UTC/cache fixes and building download deferral.
+- Recent earthquakes: USGS 30-day regional feed, five-minute refresh, magnitude/depth markers, accessible event selector and tested failure/cleanup behavior.

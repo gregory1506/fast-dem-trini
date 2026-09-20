@@ -38,3 +38,23 @@
 - Added a regression test; all nine tests, zero-warning lint, TypeScript and production build now pass. Large bundle warnings and previously documented product follow-ups remain.
 
 **Status:** review fix ready; user authorized merging after the updated GitHub checks pass.
+
+## 2026-09-20 — Recent earthquakes layer
+
+**What was done:**
+- Added an opt-in USGS past-30-days layer filtered to the map region, with magnitude-sized circles, depth colours, marker/keyboard-selectable details and Trinidad event times.
+- Added five-minute refresh, request cancellation, honest empty/error states and preservation of the last successful data on refresh failure; made the control panel scrollable on short screens.
+- Verified the live feed (zero matching regional events at check time), browser marker clicks and selection using labelled fixtures, failed refresh retention, disabled-layer request cleanup and 390×844 mobile layout.
+- `npm run check` passed: lint, 12 tests, TypeScript and production build; existing large-bundle warnings remain. Browser 503 errors were intentionally injected for failure checks. Screenshots are in ignored `output/playwright/`.
+
+**Files touched:** src/App.tsx, src/index.css, src/components/EarthquakeLayer.tsx, src/services/earthquakes.ts, tests/earthquakes.test.mjs, README.md and work records.
+
+**Status:** complete locally; no commit, push or deployment.
+
+## 2026-09-20 — Earthquake layer publication
+
+**What was done:**
+- User authorized pushing and deploying the validated earthquake layer.
+- Confirmed main is the deployment branch and GitHub Pages runs the full check suite before publishing.
+
+**Status:** publishing via the existing GitHub Actions workflow; deployment result will be verified against the pushed commit.

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Mountain, MousePointer2, Layers, Car, Droplets, Building2, Wind } from 'lucide-react';
+import { Mountain, MousePointer2, Layers, Car, Droplets, Building2, Wind, Activity } from 'lucide-react';
+import { EarthquakeLayer } from './components/EarthquakeLayer';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
 import { TripsLayer } from '@deck.gl/geo-layers';
@@ -74,6 +75,7 @@ function App() {
   const touchDeltaRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [windStatus, setWindStatus] = useState('Loading wind data…');
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [loadedMap, setLoadedMap] = useState<maplibregl.Map | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [legendBands, setLegendBands] = useState<number[]>([0, 4, 8, 12, 16, 20]);
@@ -81,7 +83,8 @@ function App() {
     roads: false,
     rivers: false,
     buildings: false,
-    trips: false
+    trips: false,
+    earthquakes: false
   });
 
   useEffect(() => {
@@ -274,6 +277,8 @@ function App() {
     });
 
     map.on('load', async () => {
+      if (disposed) return;
+      setLoadedMap(map);
       setMapLoaded(true);
       map.jumpTo({ bearing: 0, pitch: 60 });
 
@@ -522,7 +527,18 @@ function App() {
             >
               <Wind size={18} /> Wind Trails
             </button>
+            <button
+              className={`layer-toggle ${layers.earthquakes ? 'active' : ''}`}
+              onClick={() => toggleLayer('earthquakes')}
+              aria-pressed={layers.earthquakes}
+              disabled={!mapLoaded}
+            >
+              <Activity size={18} /> Recent Earthquakes
+            </button>
           </div>
+
+          {layers.earthquakes && loadedMap &&
+            <EarthquakeLayer map={loadedMap} bounds={TRINIDAD_TOBAGO_BOUNDS} />}
 
           <div className="controls-hint" style={{ marginTop: '16px' }}>
             <div className="icon-wrapper">
