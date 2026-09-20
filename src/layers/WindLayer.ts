@@ -11,8 +11,8 @@ import fragmentShaderSource from '../shaders/windParticle.frag.glsl?raw';
 
 export class WindLayer implements maplibregl.CustomLayerInterface {
   id: string;
-  type: 'custom' = 'custom';
-  renderingMode: '2d' = '2d';
+  type = 'custom' as const;
+  renderingMode = '2d' as const;
 
   private map: maplibregl.Map | null = null;
   private windDataService: WindDataService;
@@ -93,7 +93,7 @@ export class WindLayer implements maplibregl.CustomLayerInterface {
     this.updateGLBuffers(gl as WebGLRenderingContext);
   }
 
-  render(gl: WebGLRenderingContext | WebGL2RenderingContext, options: any): void {
+  render(gl: WebGLRenderingContext | WebGL2RenderingContext, options: maplibregl.CustomRenderMethodInput): void {
     if (!this.visible || !this.program) return;
 
     const projectionData = options.defaultProjectionData;

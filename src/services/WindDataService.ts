@@ -56,6 +56,8 @@ export interface WindGrid {
  * Configuration for the Wind Data Service
  */
 export interface WindDataConfig {
+  /** Use deterministic synthetic wind without contacting the API. */
+  demo?: boolean;
   /** Geographic bounds for wind data coverage */
   bounds: {
     north: number;
@@ -100,8 +102,14 @@ export interface OpenMeteoResponse {
 
 export type OpenMeteoMultiResponse = OpenMeteoResponse[];
 
+// Open-Meteo's timezone-free ISO timestamps are UTC for our request. Preserve
+// explicit offsets so validation and conversion agree on the same instant.
+const parseForecastTime = (time: string): number =>
+  Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(time) ? time : `${time}Z`);
+
 export class WindDataService {
   private config: WindDataConfig;
+  private cachedAt = 0;
   private cachedData: WindGrid | null = null;
   private cachedSeries: WindGrid[] | null = null;
   private fetchPromise: Promise<WindGrid[]> | null = null;
@@ -142,6 +150,7 @@ export class WindDataService {
 
     try {
       const series = await this.fetchPromise;
+      if (series !== this.cachedSeries) this.cachedAt = Date.now();
       this.cachedSeries = series;
       this.cachedData = series[0] || this.createTestWindGrid();
       return this.cachedData;
@@ -161,6 +170,7 @@ export class WindDataService {
 
     if (this.fetchPromise) {
       const series = await this.fetchPromise;
+      if (series !== this.cachedSeries) this.cachedAt = Date.now();
       this.cachedSeries = series;
       this.cachedData = series[0] || this.cachedData;
       return series;
@@ -170,6 +180,7 @@ export class WindDataService {
 
     try {
       const series = await this.fetchPromise;
+      if (series !== this.cachedSeries) this.cachedAt = Date.now();
       this.cachedSeries = series;
       this.cachedData = series[0] || this.createTestWindGrid();
       return series;
@@ -182,6 +193,7 @@ export class WindDataService {
    * Performs the actual API fetch and data processing for hourly series
    */
   private async performSeriesFetch(): Promise<WindGrid[]> {
+    if (this.config.demo) return [this.createTestWindGrid()];
     try {
       // Generate grid points for API request
       const { latitudes, longitudes } = this.generateGridPoints();
@@ -190,13 +202,14 @@ export class WindDataService {
       const url = this.buildApiUrl(latitudes, longitudes);
 
       console.log('Fetching wind data from Open-Meteo...');
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
 
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
       const data: OpenMeteoResponse | OpenMeteoMultiResponse = await response.json();
+      this.validateResponse(data, latitudes.length);
       const series = this.processHourlyResponse(data, latitudes, longitudes);
 
       if (series.length === 0) {
@@ -250,6 +263,26 @@ export class WindDataService {
       // Return test wind grid fallback for visualization
       console.warn('Using test wind grid due to fetch error');
       return [this.createTestWindGrid()];
+    }
+  }
+
+  /** Reject partial grids rather than shifting locations or inventing calm winds. */
+  private validateResponse(data: OpenMeteoResponse | OpenMeteoMultiResponse, count: number): void {
+    const locations = Array.isArray(data) ? data : [data];
+    if (locations.length !== count) throw new Error('Incomplete wind grid');
+    const times = locations[0]?.hourly?.time;
+    const valid = (speed: number | undefined, direction: number | undefined) =>
+      Number.isFinite(speed) && speed! >= 0 && Number.isFinite(direction) && direction! >= 0 && direction! <= 360;
+    for (const location of locations) {
+      if (times?.length) {
+        if (times.some((time, i) => location.hourly?.time?.[i] !== time ||
+          !Number.isFinite(parseForecastTime(time)) ||
+          !valid(location.hourly?.wind_speed_10m?.[i], location.hourly?.wind_direction_10m?.[i]))) {
+          throw new Error('Invalid hourly wind data');
+        }
+      } else if (!valid(location.current?.wind_speed_10m, location.current?.wind_direction_10m)) {
+        throw new Error('Invalid current wind data');
+      }
     }
   }
 
@@ -396,7 +429,7 @@ export class WindDataService {
     const timeStamps: number[] = [];
     for (let t = 0; t < timeCount; t += 1) {
       const rawTime = firstHourly.time[t];
-      const parsed = Date.parse(rawTime);
+      const parsed = parseForecastTime(rawTime);
       timeStamps.push(Number.isFinite(parsed) ? parsed : Date.now() + t * 3600000);
     }
 
@@ -474,7 +507,7 @@ export class WindDataService {
         const variation = Math.sin(row * 0.5) * 2; // Add some variation
         const speed = baseSpeed + variation;
 
-        // Wind from east (270 degrees in meteorological convention)
+        // Meteorological direction is where the wind comes from: east = 90°.
         const direction = 90; // From East
         const { u, v } = this.windToUV(speed, direction);
 
@@ -497,7 +530,7 @@ export class WindDataService {
         bounds,
         rows: gridRows,
         cols: gridCols,
-        source: 'Test Wind Data (East Trade Winds)',
+        source: 'Synthetic demo wind (not a forecast)',
       },
     };
   }
@@ -511,8 +544,11 @@ export class WindDataService {
   private isCacheFresh(): boolean {
     if (!this.cachedData) return false;
 
-    const age = Date.now() - this.cachedData.metadata.timestamp;
-    return age < this.config.cacheDuration;
+    const age = Date.now() - this.cachedAt;
+    const ttl = this.cachedData.metadata.source.startsWith('Synthetic')
+      ? Math.min(this.config.cacheDuration, 60000)
+      : this.config.cacheDuration;
+    return age >= 0 && age < ttl;
   }
 
   /**
