@@ -41,7 +41,7 @@ promising a complete GIS platform.
 ## Validation and limits
 
 Baseline build passed; baseline lint failed. After preparation, `npm run check`
-passes lint, eight network-free regression tests, TypeScript and production build.
+passes lint, nine network-free regression tests, TypeScript and production build.
 The large-chunk warning remains visible. Test coverage targets data behavior;
 it does not certify GPU rendering, browser accessibility, or upstream availability.
 Dependency vulnerability and upstream licensing audits were not performed.

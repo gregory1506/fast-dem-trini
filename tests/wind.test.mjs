@@ -80,3 +80,13 @@ test('trip paths stay in bounds and have increasing animation timestamps', async
     });
   }
 });
+
+test('explicit timezone offsets remain valid forecast timestamps', async () => {
+  const data = response().map(point => ({
+    hourly: { ...point.hourly, time: ['2020-01-01T08:00-04:00'] },
+  }));
+  globalThis.fetch = async () => ({ ok: true, json: async () => data });
+  const grid = await new WindDataService(config).fetchWindData();
+  assert.equal(grid.metadata.source, 'Open-Meteo GFS (Hourly)');
+  assert.equal(grid.metadata.timestamp, Date.UTC(2020, 0, 1, 12));
+});

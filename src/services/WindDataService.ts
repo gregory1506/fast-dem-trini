@@ -102,6 +102,11 @@ export interface OpenMeteoResponse {
 
 export type OpenMeteoMultiResponse = OpenMeteoResponse[];
 
+// Open-Meteo's timezone-free ISO timestamps are UTC for our request. Preserve
+// explicit offsets so validation and conversion agree on the same instant.
+const parseForecastTime = (time: string): number =>
+  Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(time) ? time : `${time}Z`);
+
 export class WindDataService {
   private config: WindDataConfig;
   private cachedAt = 0;
@@ -271,7 +276,7 @@ export class WindDataService {
     for (const location of locations) {
       if (times?.length) {
         if (times.some((time, i) => location.hourly?.time?.[i] !== time ||
-          !Number.isFinite(Date.parse(`${time.replace(/Z$/, '')}Z`)) ||
+          !Number.isFinite(parseForecastTime(time)) ||
           !valid(location.hourly?.wind_speed_10m?.[i], location.hourly?.wind_direction_10m?.[i]))) {
           throw new Error('Invalid hourly wind data');
         }
@@ -424,7 +429,7 @@ export class WindDataService {
     const timeStamps: number[] = [];
     for (let t = 0; t < timeCount; t += 1) {
       const rawTime = firstHourly.time[t];
-      const parsed = Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(rawTime) ? rawTime : `${rawTime}Z`);
+      const parsed = parseForecastTime(rawTime);
       timeStamps.push(Number.isFinite(parsed) ? parsed : Date.now() + t * 3600000);
     }
 

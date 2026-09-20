@@ -29,3 +29,12 @@
 - Prepared branch `hackathon/october-readiness` with the critique, event materials, checks and runtime fixes. Prior validation is recorded above.
 
 **Status:** submitting for review; no merge or production deployment authorized by this step.
+
+## 2026-09-20 — PR #8 review before merge
+
+**What was done:**
+- Reviewed runtime changes, tests, CI/deployment configuration and documentation; GitHub CI passed and there were no inline review comments. CodeRabbit explicitly skipped review.
+- Reproduced valid offset-bearing forecast timestamps being rejected by validation and replaced duplicated parsing with one shared UTC/offset parser.
+- Added a regression test; all nine tests, zero-warning lint, TypeScript and production build now pass. Large bundle warnings and previously documented product follow-ups remain.
+
+**Status:** review fix ready; user authorized merging after the updated GitHub checks pass.
