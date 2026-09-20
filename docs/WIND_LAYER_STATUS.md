@@ -1,3 +1,6 @@
+> Historical particle-renderer notes. The active app uses deck.gl TripsLayer.
+> Start with [current architecture](ARCHITECTURE.md) and [October tasks](HACKATHON.md).
+
 # Wind Layer Implementation Status
 
 ## Current State: REAL DATA + VISIBLE

@@ -17,17 +17,62 @@ const TRINIDAD_TOBAGO_BOUNDS = {
   west: -62.9,
 };
 
+const buildQuantileBands = (values: number[]): number[] => {
+  if (values.length === 0) {
+    return [0, 0, 0, 0, 0, 0];
+  }
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  const quantile = (p: number) => sorted[Math.floor(p * (n - 1))];
+
+  const bands = [0, 0.2, 0.4, 0.6, 0.8, 1].map(quantile);
+  const min = bands[0];
+  const max = bands[bands.length - 1];
+
+  if (max - min < 0.1) {
+    return Array(6).fill(Number(min.toFixed(1)));
+  }
+
+  const rounded = bands.map((value) => Number(value.toFixed(1)));
+  for (let i = 1; i < rounded.length; i += 1) {
+    rounded[i] = Math.max(rounded[i], rounded[i - 1]);
+  }
+  return rounded;
+};
+
+const buildLegendBands = (grid: WindGrid): number[] => {
+  const speeds: number[] = [];
+  for (const row of grid.points) {
+    for (const point of row) {
+      speeds.push(point.speed || 0);
+    }
+  }
+
+  return buildQuantileBands(speeds);
+};
+
+const buildTripLegendBands = (trips: WindTrip[]): number[] => {
+  const speeds = trips.map((trip) => trip.speed).filter((speed) => Number.isFinite(speed));
+  return buildQuantileBands(speeds);
+};
+
+const formatSpeed = (value: number) => (Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1));
+
+
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const windDataServiceRef = useRef<WindDataService | null>(null);
   const deckOverlayRef = useRef<MapboxOverlay | null>(null);
+  const buildingsRequestedRef = useRef(false);
   const tripsRef = useRef<WindTrip[]>([]);
   const maxTripTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
   const currentTimeRef = useRef<number>(0);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchDeltaRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [windStatus, setWindStatus] = useState('Loading wind data…');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -38,91 +83,6 @@ function App() {
     buildings: false,
     trips: false
   });
-
-  const buildQuantileBands = (values: number[]): number[] => {
-    if (values.length === 0) {
-      return [0, 0, 0, 0, 0, 0];
-    }
-
-    const sorted = [...values].sort((a, b) => a - b);
-    const n = sorted.length;
-    const quantile = (p: number) => sorted[Math.floor(p * (n - 1))];
-
-    const bands = [0, 0.2, 0.4, 0.6, 0.8, 1].map(quantile);
-    const min = bands[0];
-    const max = bands[bands.length - 1];
-
-    if (max - min < 0.1) {
-      return Array(6).fill(Number(min.toFixed(1)));
-    }
-
-    const rounded = bands.map((value) => Number(value.toFixed(1)));
-    for (let i = 1; i < rounded.length; i += 1) {
-      rounded[i] = Math.max(rounded[i], rounded[i - 1]);
-    }
-    return rounded;
-  };
-
-  const buildLegendBands = (grid: WindGrid): number[] => {
-    const speeds: number[] = [];
-    for (const row of grid.points) {
-      for (const point of row) {
-        speeds.push(point.speed || 0);
-      }
-    }
-
-    return buildQuantileBands(speeds);
-  };
-
-  const buildTripLegendBands = (trips: WindTrip[]): number[] => {
-    const speeds = trips.map((trip) => trip.speed).filter((speed) => Number.isFinite(speed));
-    return buildQuantileBands(speeds);
-  };
-
-  const formatSpeed = (value: number) => (Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1));
-
-  const getQuantileColor = (speed: number): [number, number, number] => {
-    const bands = legendBands.length === 6 ? legendBands : [0, 4, 8, 12, 16, 20];
-    const colors: [number, number, number][] = [
-      [125, 211, 252],
-      [56, 189, 248],
-      [34, 211, 238],
-      [34, 197, 94],
-      [245, 158, 11],
-    ];
-
-    if (speed <= bands[1]) return colors[0];
-    if (speed <= bands[2]) return colors[1];
-    if (speed <= bands[3]) return colors[2];
-    if (speed <= bands[4]) return colors[3];
-    return colors[4];
-  };
-
-  const buildTripsLayer = (currentTime: number) => {
-    if (!layers.trips || tripsRef.current.length === 0) return null;
-
-    return new TripsLayer<WindTrip>({
-      id: 'wind-trips-layer',
-      data: tripsRef.current,
-      getPath: (d: WindTrip) => d.path,
-      getTimestamps: (d: WindTrip) => d.timestamps,
-      getColor: (d: WindTrip) => getQuantileColor(d.speed),
-      opacity: 0.9,
-      widthMinPixels: 2.0,
-      jointRounded: true,
-      capRounded: true,
-      trailLength: 90,
-      coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
-      currentTime,
-    });
-  };
-
-  const updateDeckLayers = (currentTime: number) => {
-    const overlay = deckOverlayRef.current;
-    if (!overlay) return;
-    const tripsLayer = buildTripsLayer(currentTime);
-    overlay.setProps({ layers: tripsLayer ? [tripsLayer] : [] });
-  };
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 640px)');
@@ -194,6 +154,7 @@ function App() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
+    let disposed = false;
     // Initialize MapLibre
     const map = new maplibregl.Map({
       container: mapContainer.current,
@@ -222,15 +183,18 @@ function App() {
           // Vector Features Sources
           'roadsSource': {
             type: 'geojson',
-            data: `${import.meta.env.BASE_URL}roads.geojson`
+            data: `${import.meta.env.BASE_URL}roads.geojson`,
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           },
           'riversSource': {
             type: 'geojson',
-            data: `${import.meta.env.BASE_URL}rivers.geojson`
+            data: `${import.meta.env.BASE_URL}rivers.geojson`,
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           },
           'buildingsSource': {
             type: 'geojson',
-            data: `${import.meta.env.BASE_URL}buildings.geojson`
+            data: { type: 'FeatureCollection', features: [] },
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }
         },
         layers: [
@@ -306,8 +270,7 @@ function App() {
         [TRINIDAD_TOBAGO_BOUNDS.west, TRINIDAD_TOBAGO_BOUNDS.south],
         [TRINIDAD_TOBAGO_BOUNDS.east, TRINIDAD_TOBAGO_BOUNDS.north],
       ],
-      // @ts-ignore
-      antialias: true // creates smoother 3D edges
+      canvasContextAttributes: { antialias: true }
     });
 
     map.on('load', async () => {
@@ -340,7 +303,8 @@ function App() {
         bounds: TRINIDAD_TOBAGO_BOUNDS,
         cacheDuration: 3600000, // 1 hour
         particleCount: 875,
-        forecastHours: 18
+        forecastHours: 18,
+        demo: new URLSearchParams(window.location.search).get('demo') === '1'
       });
       windDataServiceRef.current = windService;
 
@@ -351,6 +315,8 @@ function App() {
       // Fetch initial wind data
       try {
         const grid = await windService.fetchWindData();
+        if (disposed) return;
+        setWindStatus(`${grid.metadata.source} · ${new Date(grid.metadata.timestamp).toISOString()} (UTC)`);
         const { trips, maxTime } = buildWindTrips(
           windService,
           TRINIDAD_TOBAGO_BOUNDS,
@@ -385,6 +351,7 @@ function App() {
     mapRef.current = map;
 
     return () => {
+      disposed = true;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -394,15 +361,62 @@ function App() {
       }
       map.remove();
       mapRef.current = null;
+      buildingsRequestedRef.current = false;
     };
   }, []);
 
   useEffect(() => {
     if (!mapLoaded) return;
 
-    const animate = () => {
+    const getQuantileColor = (speed: number): [number, number, number] => {
+      const bands = legendBands.length === 6 ? legendBands : [0, 4, 8, 12, 16, 20];
+      const colors: [number, number, number][] = [
+        [125, 211, 252],
+        [56, 189, 248],
+        [34, 211, 238],
+        [34, 197, 94],
+        [245, 158, 11],
+      ];
+
+      if (speed <= bands[1]) return colors[0];
+      if (speed <= bands[2]) return colors[1];
+      if (speed <= bands[3]) return colors[2];
+      if (speed <= bands[4]) return colors[3];
+      return colors[4];
+    };
+
+    const buildTripsLayer = (currentTime: number) => {
+      if (!layers.trips || tripsRef.current.length === 0) return null;
+
+      return new TripsLayer<WindTrip>({
+        id: 'wind-trips-layer',
+        data: tripsRef.current,
+        getPath: (d: WindTrip) => d.path,
+        getTimestamps: (d: WindTrip) => d.timestamps,
+        getColor: (d: WindTrip) => getQuantileColor(d.speed),
+        opacity: 0.9,
+        widthMinPixels: 2.0,
+        jointRounded: true,
+        capRounded: true,
+        trailLength: 90,
+        coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+        currentTime,
+      });
+    };
+
+    const updateDeckLayers = (currentTime: number) => {
+      const overlay = deckOverlayRef.current;
+      if (!overlay) return;
+      const tripsLayer = buildTripsLayer(currentTime);
+      overlay.setProps({ layers: tripsLayer ? [tripsLayer] : [] });
+    };
+
+    let previousTime: number | null = null;
+    const animate = (now: number) => {
+      const elapsed = previousTime === null ? 0 : Math.min(now - previousTime, 50);
+      previousTime = now;
       const maxTime = maxTripTimeRef.current || 1;
-      currentTimeRef.current = (currentTimeRef.current + 0.35) % maxTime;
+      currentTimeRef.current = (currentTimeRef.current + elapsed * 0.021) % maxTime;
       updateDeckLayers(currentTimeRef.current);
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -423,13 +437,20 @@ function App() {
         animationFrameRef.current = null;
       }
     };
-  }, [layers.trips, mapLoaded]);
+  }, [layers.trips, mapLoaded, legendBands]);
 
   // Update layer visibility when toggles change
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
 
     const map = mapRef.current;
+
+    if (layers.buildings && !buildingsRequestedRef.current) {
+      (map.getSource('buildingsSource') as maplibregl.GeoJSONSource).setData(
+        `${import.meta.env.BASE_URL}buildings.geojson`
+      );
+      buildingsRequestedRef.current = true;
+    }
 
     map.setLayoutProperty('roads-layer', 'visibility', layers.roads ? 'visible' : 'none');
     map.setLayoutProperty('rivers-layer', 'visibility', layers.rivers ? 'visible' : 'none');
@@ -457,7 +478,7 @@ function App() {
         >
           <div className="panel-header">
             <h1><Mountain size={26} color="#38bdf8" /> EarthDEM Viewer</h1>
-            <span className="panel-badge">Live Terrain</span>
+            <span className="panel-badge">3D Terrain</span>
           </div>
           <p className="subtitle">Interactive 3D elevation map of Trinidad & Tobago.</p>
 
@@ -469,6 +490,8 @@ function App() {
             <button
               className={`layer-toggle ${layers.roads ? 'active' : ''}`}
               onClick={() => toggleLayer('roads')}
+              aria-pressed={layers.roads}
+              disabled={!mapLoaded}
             >
               <Car size={18} /> Major Roads
             </button>
@@ -476,6 +499,8 @@ function App() {
             <button
               className={`layer-toggle ${layers.rivers ? 'active' : ''}`}
               onClick={() => toggleLayer('rivers')}
+              aria-pressed={layers.rivers}
+              disabled={!mapLoaded}
             >
               <Droplets size={18} /> Rivers & Streams
             </button>
@@ -483,15 +508,19 @@ function App() {
             <button
               className={`layer-toggle ${layers.buildings ? 'active' : ''}`}
               onClick={() => toggleLayer('buildings')}
+              aria-pressed={layers.buildings}
+              disabled={!mapLoaded}
             >
-              <Building2 size={18} /> 3D Buildings (Island-wide)
+              <Building2 size={18} /> Buildings (illustrative heights)
             </button>
 
             <button
               className={`layer-toggle ${layers.trips ? 'active' : ''}`}
               onClick={() => toggleLayer('trips')}
+              aria-pressed={layers.trips}
+              disabled={!mapLoaded}
             >
-              <Wind size={18} /> Wind Trips (deck.gl)
+              <Wind size={18} /> Wind Trails
             </button>
           </div>
 
@@ -538,6 +567,7 @@ function App() {
       </div>
 
       <div className="map-legend">
+        <div role="status" style={{ fontSize: '0.75rem', maxWidth: 360, marginBottom: 8 }}>{windStatus}</div>
         <div className="legend-title">Wind Speed (m/s) · Quantiles</div>
         <div className="legend-row">
           <span className="legend-item"><span className="legend-swatch swatch-1" />{formatSpeed(legendBands[0])}-{formatSpeed(legendBands[1])}</span>

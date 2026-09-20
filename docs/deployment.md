@@ -1,71 +1,19 @@
-# Deployment (Free Tier Options)
+# Deployment
 
-This project is a static Vite app and can be hosted on any static host.
+The repository already has `.github/workflows/deploy.yml`. It runs `npm ci` and
+`npm run check`, then publishes `dist/` to GitHub Pages on pushes to `main` or
+manual dispatch. The workflow reads the Node version from `.nvmrc`.
 
-## Option A: GitHub Pages (recommended)
-Use the official GitHub Actions flow for Vite.
+1. In the repository settings, enable Pages with GitHub Actions as the source.
+2. Keep `base: '/fast-dem-trini/'` in `vite.config.ts` for this repository's Pages URL.
+   For a renamed fork use `/<repo-name>/`; for root hosting use `/`.
+3. Run `npm run check` and `npm run preview`. Open the printed URL with its base path.
+4. Verify satellite/terrain, the three GeoJSON layers, and wind source labeling.
+5. Merge an approved change to `main` to trigger the existing deployment workflow.
 
-1. Set the base path in `vite.config.ts` (only if the site is hosted at a repo subpath):\n   Example: `base: '/REPO_NAME/'`.\n2. Add the GitHub Pages workflow (see below).\n3. Push to `main` and enable Pages:\n   - Repo Settings → Pages\n   - Source: **GitHub Actions**\n4. Your site will be published at:\n   - `https://<username>.github.io/<repo>/`\n
-### GitHub Actions workflow
-Create `.github/workflows/pages.yml`:
+The separate `ci.yml` workflow checks pull requests but does not publish them.
+Required status checks and merge permissions must be configured in GitHub settings.
 
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-## Option B: Cloudflare Pages (free)
-- Build command: `npm run build`
-- Output directory: `dist`
-
-## Option C: Netlify (free)
-- Build command: `npm run build`
-- Output directory: `dist`
-
-## Option D: Vercel (free)
-- Framework: Vite
-- Build command: `npm run build`
-- Output directory: `dist`
-
-## Notes
-- If the app uses a MapTiler key, keep it in an env var and load it at build time.
-- If using a subpath, set `base` in `vite.config.ts` (e.g., `/repo-name/`).
-- Confirm all assets are relative to the base.
+This is a static client-side app: the browser must reach the external tile and
+wind services. `?demo=1` replaces wind data only. No credentials are needed by the
+current app. Do not add secrets to Vite client environment variables.

@@ -1,3 +1,6 @@
+> Historical particle-renderer notes. The active app uses deck.gl TripsLayer.
+> Start with [current architecture](ARCHITECTURE.md) and [October tasks](HACKATHON.md).
+
 # Next Steps: Smoother Wind + Trails
 
 ## Goal 1: Reduce Jerky Motion
