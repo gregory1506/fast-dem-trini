@@ -405,6 +405,9 @@ function App() {
         capRounded: true,
         trailLength: 90,
         coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+        // Wind is a surface visualization: keep sea-level paths visible over
+        // MapLibre's elevated terrain without changing the shared depth buffer.
+        parameters: { depthCompare: 'always', depthWriteEnabled: false },
         currentTime,
       });
     };

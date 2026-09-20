@@ -1,5 +1,17 @@
 # Work Log
 
+## 2026-09-20 — Wind visibility over land
+
+- Render wind trails without terrain depth occlusion or writes to the shared depth buffer, so existing paths remain visible over land as well as water.
+- `npm run check` passed (lint, 12 tests, TypeScript and build; existing bundle-size warnings remain). Visually confirmed trails across Trinidad in the local demo with Playwright; screenshot: `output/playwright/wind-over-land.png`.
+- Status: implemented locally; not committed or deployed.
+
+## 2026-09-20 — Wind visibility publication
+
+- User authorized deployment of the validated wind visibility fix.
+- Publishing through the existing main-branch GitHub Pages workflow, which runs lint, tests and the production build before deployment.
+- Status: deployment initiated; verify the workflow against the pushed commit and the public bundle.
+
 ## 2026-09-19 — October hackathon preparation
 
 **What was done:**
@@ -57,4 +69,4 @@
 - User authorized pushing and deploying the validated earthquake layer.
 - Confirmed main is the deployment branch and GitHub Pages runs the full check suite before publishing.
 
-**Status:** publishing via the existing GitHub Actions workflow; deployment result will be verified against the pushed commit.
+**Status:** deployment verified. GitHub Pages run `35489548773` and quality-check run `35489548759` both completed successfully for commit `35e216dbaf4f8ea0e05f48cba58800f5357d2be7`. The public site returned its app HTML, and its referenced JavaScript bundle includes the earthquake controls and USGS endpoint. This follow-up checked publication; browser interaction checks are recorded above.
